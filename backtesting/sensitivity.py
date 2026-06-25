@@ -30,7 +30,7 @@ _BASE = {
 PARAM_GRIDS: dict[str, list] = {
     "conf_base":      [0.01, 0.05, 0.20],
     "lookback":       [126, 252],
-    "lam":            [0.5, 1.0, 2.0],
+    "lam":            [0.0, 0.5, 1.0, 2.0],
     "max_weight":     [0.10, 0.15, 0.20],
     "commission":     [0.005, 0.01, 0.015],
     "exceso_critico": [0.10, 0.15, 0.20],
