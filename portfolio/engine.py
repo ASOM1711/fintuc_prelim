@@ -58,9 +58,14 @@ class PortfolioState:
         """
         Descuenta la comisión de gestión mensual (commission_rate / 12 sobre AUM).
         Retorna el monto descontado en $.
+
+        El peak se reduce en el mismo monto para que la comisión no afecte
+        el cálculo de drawdown — el cliente entiende que hay un fee de gestión
+        y el abandono solo debe reflejar pérdidas de mercado.
         """
-        monto      = self.valor * (commission_rate / 12)
+        monto       = self.valor * (commission_rate / 12)
         self.valor -= monto
+        self.peak  -= monto  # exime la comisión del drawdown
         return monto
 
     def aplicar_pesos(self, pesos_nuevos: np.ndarray) -> float:
@@ -80,12 +85,10 @@ def paso_mensual(
     div_yield_mes: pd.DataFrame,
     pesos_optimos: np.ndarray,
     tolerancia_perfil: float,
-    umbral_p2: float = 0.10,
-    k_p1: float = 10.0,
-    k_p2: float = 20.0,
-    exceso_critico_p1: float = 0.15,
+    mu_bl: Optional[np.ndarray] = None,
     commission_rate: float = COMMISSION,
     rng: Optional[np.random.Generator] = None,
+    p1_lineal: bool = False,
 ) -> dict:
     """
     Ejecuta un mes completo del portafolio:
@@ -93,6 +96,9 @@ def paso_mensual(
       2. Cobra comisión mensual de gestión.
       3. Decide si el cliente acepta el rebalanceo (P2).
       4. Calcula la probabilidad de abandono del cliente (P1).
+
+    P2 se basa en el retorno anual esperado del portafolio propuesto vs la tolerancia.
+    P1 se basa en el drawdown actual vs la tolerancia del perfil.
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -107,25 +113,33 @@ def paso_mensual(
     comision = state.cobrar_comision_mensual(commission_rate)
 
     # 3. P2: ¿acepta el cliente el rebalanceo?
-    turnover  = float(np.abs(pesos_optimos - state.pesos).sum() / 2)
-    prob_p2   = p2_aceptacion(turnover, umbral=umbral_p2, k=k_p2)
+    # retorno esperado anual = dot(mu_bl, pesos) * 252 (mu_bl en escala diaria)
+    if mu_bl is not None and pesos_optimos.sum() > 0:
+        ret_diario_esperado = float(np.dot(mu_bl, pesos_optimos))
+        retorno_esperado    = (1 + ret_diario_esperado) ** 252 - 1
+    else:
+        retorno_esperado = 0.0
+
+    turnover   = float(np.abs(pesos_optimos - state.pesos).sum() / 2)
+    prob_p2    = p2_aceptacion(retorno_esperado, tolerancia_perfil)
     rebalanceo = bool(rng.random() < prob_p2)
     if rebalanceo:
         state.aplicar_pesos(pesos_optimos)
 
     # 4. P1: ¿abandona el cliente?
     dd       = state.drawdown()
-    prob_p1  = p1_abandono(dd, tolerancia=tolerancia_perfil, k=k_p1, exceso_critico=exceso_critico_p1)
+    prob_p1  = p1_abandono(dd, tolerancia_perfil, lineal=p1_lineal)
     abandona = bool(rng.random() < prob_p1)
 
     return {
-        "valor":      state.valor,
-        "drawdown":   dd,
-        "turnover":   turnover,
-        "prob_p2":    prob_p2,
-        "prob_p1":    prob_p1,
-        "rebalanceo": rebalanceo,
-        "abandona":   abandona,
-        "caja_chica": state.caja_chica,
-        "comision":   comision,
+        "valor":             state.valor,
+        "drawdown":          dd,
+        "turnover":          turnover,
+        "retorno_esperado":  retorno_esperado,
+        "prob_p2":           prob_p2,
+        "prob_p1":           prob_p1,
+        "rebalanceo":        rebalanceo,
+        "abandona":          abandona,
+        "caja_chica":        state.caja_chica,
+        "comision":          comision,
     }

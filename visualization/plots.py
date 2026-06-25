@@ -169,17 +169,24 @@ def plot_curvas_p1(guardar: str = None):
 
 
 def plot_curva_p2(guardar: str = None):
-    """Curva de P2 en funcion del turnover propuesto."""
-    fig, ax = plt.subplots(figsize=(8, 4))
-    turnovers = np.linspace(0, 0.50, 300)
-    p2_vals = [p2_aceptacion(t) for t in turnovers]
+    """Curva de P2 en funcion del retorno esperado para cada perfil."""
+    fig, ax = plt.subplots(figsize=(10, 5))
+    retornos = np.linspace(-0.10, 0.60, 400)
 
-    ax.plot(turnovers * 100, p2_vals, color="#333333", linewidth=2)
+    for perfil, tolerancia in RISK_PROFILES.items():
+        if tolerancia == 0.0:
+            continue
+        p2_vals = [p2_aceptacion(r, tolerancia) for r in retornos]
+        ax.plot(retornos * 100, p2_vals,
+                label=LABELS[perfil], color=COLORES[perfil], linewidth=2)
+        ax.axvline(x=tolerancia * 100, color=COLORES[perfil],
+                   linestyle=":", linewidth=1, alpha=0.4)
+
     ax.axhline(y=0.5, color="gray", linestyle="--", linewidth=1, alpha=0.5)
-    ax.axvline(x=10, color="gray", linestyle=":", linewidth=1, alpha=0.5)
-    ax.set_title("Probabilidad de aceptacion de rebalanceo P2", fontsize=14)
-    ax.set_xlabel("Turnover propuesto (%)")
+    ax.set_title("Probabilidad de aceptar rebalanceo P2 por perfil", fontsize=14)
+    ax.set_xlabel("Retorno anual esperado del portafolio (%)")
     ax.set_ylabel("P2")
+    ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
 

@@ -1,44 +1,42 @@
 import numpy as np
 
 
-def p1_abandono(
-    drawdown: float,
-    tolerancia: float,
-    k: float = 10.0,
-    exceso_critico: float = 0.15,
-) -> float:
+def p1_abandono(drawdown: float, tolerancia: float, lineal: bool = False) -> float:
     """
     Probabilidad de que el cliente abandone el sistema.
 
-    drawdown        : pérdida actual desde el peak (fracción positiva, e.g. 0.10 = 10%)
-    tolerancia      : pérdida máxima tolerable del perfil (e.g. 0.05 para conservador)
-    k               : pendiente de la sigmoide sobre el exceso
-    exceso_critico  : exceso sobre tolerancia donde P1 = 0.5 (default 15%)
+    Modo sigmoid (default, lineal=False):
+      P1 = 0                                         si drawdown <= tolerancia
+      P1 = 1 / (1 + exp(-((drawdown - tolerancia) * 100)))  si drawdown > tolerancia
+      P1 = 50% cuando drawdown = tolerancia
 
-    Mientras drawdown <= tolerancia, P1 = 0: el cliente acepta pérdidas dentro de
-    su tolerancia declarada y no considera abandonar.
-    Cuando drawdown > tolerancia, P1 sube como sigmoide del exceso:
-      P1 = 0.5 cuando exceso == exceso_critico
-      P1 -> 1  cuando exceso >> exceso_critico
+    Modo lineal (lineal=True):
+      P1 = 0                                         si drawdown <= tolerancia
+      P1 = min(1.0, (drawdown - tolerancia) * 15)   si drawdown > tolerancia
+      → +1pp sobre tolerancia = 15% abandono
+      → +2pp sobre tolerancia = 30% abandono
+      → +6.67pp sobre tolerancia = 100% abandono
+
+    Caso especial: tolerancia == 0 → P1 = 0 siempre.
     """
-    if tolerancia == 0.0:
-        return 0.0  # todo en caja chica: pérdidas de comisión no generan abandono
-    exceso = drawdown - tolerancia
-    if exceso <= 0:
+    if tolerancia == 0.0 or drawdown <= tolerancia:
         return 0.0
-    return 1.0 / (1.0 + np.exp(-k * (exceso - exceso_critico)))
+    exceso = drawdown - tolerancia
+    if lineal:
+        return min(1.0, exceso * 15)
+    return 1.0 / (1.0 + np.exp(-(exceso * 100)))
 
 
-def p2_aceptacion(turnover: float, umbral: float = 0.10, k: float = 20.0) -> float:
+def p2_aceptacion(retorno_esperado: float, tolerancia: float) -> float:
     """
-    Probabilidad de que el cliente acepte la recomendación de rebalanceo mensual.
+    Probabilidad de que el cliente acepte la recomendación de rebalanceo.
 
-    turnover : fracción del portafolio que cambiaría si se rebalancea (L1/2, entre 0 y 1)
-    umbral   : drift mínimo a partir del cual el cliente empieza a aceptar (default 10%)
-    k        : pendiente de la sigmoide
+    P2 = 1 / (1 + exp(-(x2 - x̂2)))
+      x2  = retorno anual esperado del portafolio propuesto, en puntos porcentuales
+      x̂2  = tolerancia del perfil (máxima pérdida esperada), en puntos porcentuales
 
-    P2 -> 0   cuando el portafolio está cerca del óptimo  (cliente no ve urgencia)
-    P2 = 0.5 cuando turnover == umbral
-    P2 -> 1   cuando el drift es grande  (cliente ve valor en rebalancear)
+    P2 = 0.5 cuando el retorno esperado iguala la tolerancia del perfil.
+    P2 > 0.5 cuando el retorno esperado supera la tolerancia (cliente ve valor).
+    P2 < 0.5 cuando el retorno esperado es menor que la tolerancia (cliente duda).
     """
-    return 1.0 / (1.0 + np.exp(-k * (turnover - umbral)))
+    return 1.0 / (1.0 + np.exp(-(retorno_esperado * 100 - tolerancia * 100)))

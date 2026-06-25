@@ -18,32 +18,29 @@ from config import COMMISSION, MAX_WEIGHT
 
 # Valores base de todos los parámetros
 _BASE = {
-    "conf_base":      0.05,
-    "lookback":       252,
-    "lam":            1.0,
-    "max_weight":     MAX_WEIGHT,
-    "commission":     COMMISSION,
-    "exceso_critico": 0.15,
+    "conf_base":  0.05,
+    "lookback":   252,
+    "lam":        1.0,
+    "max_weight": MAX_WEIGHT,
+    "commission": COMMISSION,
 }
 
 # Grillas de valores a explorar por parámetro
 PARAM_GRIDS: dict[str, list] = {
-    "conf_base":      [0.01, 0.05, 0.20],
-    "lookback":       [126, 252],
-    "lam":            [0.5, 1.0, 2.0],
-    "max_weight":     [0.10, 0.15, 0.20],
-    "commission":     [0.005, 0.01, 0.015],
-    "exceso_critico": [0.10, 0.15, 0.20],
+    "conf_base":  [0.01, 0.05, 0.20],
+    "lookback":   [126, 252],
+    "lam":        [0.5, 1.0, 2.0],
+    "max_weight": [0.10, 0.15, 0.20],
+    "commission": [0.005, 0.01, 0.015],
 }
 
 # Etiquetas legibles para tablas y gráficos
 PARAM_LABELS: dict[str, str] = {
-    "conf_base":      "Confianza BL (conf_base)",
-    "lookback":       "Horizonte momentum (días)",
-    "lam":            "Aversion al riesgo (lambda)",
-    "max_weight":     "Peso maximo por activo",
-    "commission":     "Comision anual",
-    "exceso_critico": "Exceso critico P1",
+    "conf_base":  "Confianza BL (conf_base)",
+    "lookback":   "Horizonte momentum (dias)",
+    "lam":        "Aversion al riesgo (lambda)",
+    "max_weight": "Peso maximo por activo",
+    "commission": "Comision anual",
 }
 
 
@@ -81,11 +78,8 @@ def run_sensitivity(
 
     registros = []
     for val in valores:
-        kwargs = {k: v for k, v in _BASE.items() if k != "exceso_critico"}
-        kwargs["exceso_critico_p1"] = _BASE["exceso_critico"]
+        kwargs = dict(_BASE)
         kwargs[param_name] = val
-        if param_name == "exceso_critico":
-            kwargs["exceso_critico_p1"] = val
 
         label = f"{val:.0%}" if param_name == "commission" else (
                 f"{val:.0%}" if param_name in ("conf_base", "max_weight") else str(val))
@@ -103,7 +97,6 @@ def run_sensitivity(
             commission=kwargs["commission"],
             conf_base=kwargs["conf_base"],
             lookback=kwargs["lookback"],
-            exceso_critico_p1=kwargs["exceso_critico_p1"],
             seed=seed,
             verbose=False,
         )
