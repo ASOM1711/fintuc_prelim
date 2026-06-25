@@ -18,29 +18,20 @@ from config import COMMISSION, MAX_WEIGHT
 
 # Valores base de todos los parámetros
 _BASE = {
-    "conf_base":  0.05,
-    "lookback":   252,
-    "lam":        1.0,
-    "max_weight": MAX_WEIGHT,
-    "commission": COMMISSION,
 }
 
 # Grillas de valores a explorar por parámetro
 PARAM_GRIDS: dict[str, list] = {
-    "conf_base":  [0.01, 0.05, 0.20],
-    "lookback":   [126, 252],
-    "lam":        [0.5, 1.0, 2.0],
-    "max_weight": [0.10, 0.15, 0.20],
-    "commission": [0.005, 0.01, 0.015],
+    "conf_base":      [0.01, 0.05, 0.20],
+    "lookback":       [126, 252],
+    "lam":            [0.0, 0.5, 1.0, 2.0],
+    "max_weight":     [0.10, 0.15, 0.20],
+    "commission":     [0.005, 0.01, 0.015],
+    "exceso_critico": [0.10, 0.15, 0.20],
 }
 
 # Etiquetas legibles para tablas y gráficos
 PARAM_LABELS: dict[str, str] = {
-    "conf_base":  "Confianza BL (conf_base)",
-    "lookback":   "Horizonte momentum (dias)",
-    "lam":        "Aversion al riesgo (lambda)",
-    "max_weight": "Peso maximo por activo",
-    "commission": "Comision anual",
 }
 
 
