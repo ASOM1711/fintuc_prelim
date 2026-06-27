@@ -7,7 +7,7 @@ retornos efectivamente realizados durante ese mes.
 import numpy as np
 import pandas as pd
 
-from config import TRAIN_WINDOW_YEARS
+from config import TRAIN_WINDOW_YEARS, BL_METHOD, BL_CONF_BASE, BL_LOOKBACK, BL_SKIP
 from models.black_littermanprelim import black_litterman, robust_factor_black_litterman
 
 
@@ -117,10 +117,10 @@ def run_prediction_error(
     eval_start: str = "2019-01-01",
     eval_end: str = "2024-12-31",
     train_years: int = TRAIN_WINDOW_YEARS,
-    conf_base: float = 0.05,
-    lookback: int = 252,
-    skip: int = 21,
-    bl_method: str = "asset_momentum",
+    conf_base: float = BL_CONF_BASE,
+    lookback: int = BL_LOOKBACK,
+    skip: int = BL_SKIP,
+    bl_method: str = BL_METHOD,
 ) -> pd.DataFrame:
     """
     Corre un test walk-forward mensual del error predictivo.
@@ -226,14 +226,14 @@ def run_profile_prediction_error(
     eval_start: str = "2019-01-01",
     eval_end: str = "2024-12-31",
     train_years: int = TRAIN_WINDOW_YEARS,
-    conf_base: float = 0.05,
-    lookback: int = 252,
-    skip: int = 21,
+    conf_base: float = BL_CONF_BASE,
+    lookback: int = BL_LOOKBACK,
+    skip: int = BL_SKIP,
     lam: float = 1.0,
     max_weight: float | None = None,
     full_invest: bool = False,
     use_bl: bool = True,
-    bl_method: str = "asset_momentum",
+    bl_method: str = BL_METHOD,
 ) -> pd.DataFrame:
     """
     Evalua el error predictivo a nivel portafolio para cada perfil.

@@ -3,7 +3,16 @@ import pandas as pd
 from scipy.stats import spearmanr
 from gurobipy import GRB
 
-from config import RISK_PROFILES, TRAIN_WINDOW_YEARS, MAX_WEIGHT, COMMISSION
+from config import (
+    RISK_PROFILES,
+    TRAIN_WINDOW_YEARS,
+    MAX_WEIGHT,
+    COMMISSION,
+    BL_METHOD,
+    BL_CONF_BASE,
+    BL_LOOKBACK,
+    BL_SKIP,
+)
 from models.black_littermanprelim import black_litterman, robust_factor_black_litterman
 from models.markowitzprelim import optimizar_markowitz, calibrar_lambda
 from portfolio.engine import PortfolioState, paso_mensual
@@ -227,10 +236,10 @@ def run_all_profiles(
     vol_factor: float = _VOL_FACTOR,
     full_invest: bool = False,
     p1_lineal: bool = False,
-    conf_base: float = 0.05,
-    lookback: int = 252,
-    skip: int = 21,
-    bl_method: str = "asset_momentum",
+    conf_base: float = BL_CONF_BASE,
+    lookback: int = BL_LOOKBACK,
+    skip: int = BL_SKIP,
+    bl_method: str = BL_METHOD,
     seed: int = 42,
     use_bl: bool = True,
     verbose: bool = True,

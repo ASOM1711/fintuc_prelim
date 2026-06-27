@@ -9,6 +9,10 @@ TRAIN_WINDOW_YEARS = 5
 
 # Modelo
 MAX_WEIGHT = 0.025      # máximo 2,5% por activo
+BL_METHOD = "robust_factor_hybrid"  # 65% factor BL robusto + 35% BL momentum por acción
+BL_CONF_BASE = 1.0
+BL_LOOKBACK = 126
+BL_SKIP = 21
 COMMISSION = 0.01       # 1% sobre AUM mensual
 DIV_CAP = 0.15          # tope dividendo por evento
 
