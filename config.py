@@ -5,10 +5,10 @@ DATA_DIR = Path(r"C:\Users\aguor\OneDrive - Universidad Católica de Chile\G18 P
 INFO_FILE = Path(r"C:\Users\aguor\OneDrive - Universidad Católica de Chile\G18 Portafolios\E3final\stocks_info.txt")
 
 # Ventana rodante
-TRAIN_WINDOW_YEARS = 4
+TRAIN_WINDOW_YEARS = 5
 
 # Modelo
-MAX_WEIGHT = 0.15       # máximo 15% por activo
+MAX_WEIGHT = 0.025      # máximo 2,5% por activo
 COMMISSION = 0.01       # 1% sobre AUM mensual
 DIV_CAP = 0.15          # tope dividendo por evento
 

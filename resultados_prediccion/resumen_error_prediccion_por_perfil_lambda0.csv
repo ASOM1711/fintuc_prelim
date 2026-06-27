@@ -1,0 +1,6 @@
+perfil,observaciones,mae,rmse,bias,hit_rate_signo,peso_acciones_promedio,n_activos_promedio,corr_pred_real,lambda
+arriesgado,72,0.048756,0.060068,0.028293,0.6111,0.8526,132.5,-0.0596,0.0
+conservador,72,0.008537,0.011529,0.005065,0.6528,0.1621,152.1,-0.1266,0.0
+muy_arriesgado,72,0.060348,0.072762,0.035097,0.5278,0.9618,168.14,-0.0196,0.0
+muy_conservador,72,0.0,0.0,0.0,1.0,0.0,0.0,,0.0
+neutro,72,0.025633,0.034598,0.015209,0.6528,0.4857,123.12,-0.1252,0.0

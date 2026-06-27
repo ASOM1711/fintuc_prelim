@@ -1,0 +1,5 @@
+modelo,bl_method,conf_base,lookback,skip,observaciones,mae,rmse,bias,hit_rate_signo,corr_pred_real
+BL actual,asset_momentum,0.05,252,21,21240,0.077325,0.141914,-0.009603,0.5161,-0.0458
+BL candidato 126/21,asset_momentum,2.0,126,21,21240,0.076497,0.139304,-0.008047,0.5226,0.004
+Robust factor BL,robust_factor,1.0,126,21,21240,0.074649,0.137575,-0.007049,0.5556,-0.0003
+Robust factor BL suave,robust_factor,2.0,126,21,21240,0.074478,0.137254,-0.007448,0.5632,0.0025

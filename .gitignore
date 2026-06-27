@@ -17,6 +17,7 @@ env/
 resultados_*.csv
 resumen_backtest.csv
 graficos/
+tmp/
 
 # Diagnósticos temporales (scripts de exploración, no parte del modelo)
 diagnostico*.py

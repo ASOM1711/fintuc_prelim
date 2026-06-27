@@ -1,0 +1,6 @@
+perfil,tasa_abandono,meses_activos_prom,retorno_prom,retorno_std,retorno_si_completa,frec_rebalanceo_prom,comision_prom,n_clientes
+muy_conservador,0.0,72.0,-0.01,0.0,-0.01,0.5003,58259.02,200
+conservador,1.0,7.4,0.3284,0.0664,,0.1098,7397.22,200
+neutro,1.0,15.0,-0.0421,0.001,,0.9743,13971.17,200
+arriesgado,0.0,72.0,0.1794,0.0051,0.1794,0.8986,112909.45,200
+muy_arriesgado,0.0,72.0,0.2195,0.0018,0.2195,0.9838,129103.31,200

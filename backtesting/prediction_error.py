@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from config import TRAIN_WINDOW_YEARS
-from models.black_littermanprelim import black_litterman
+from models.black_littermanprelim import black_litterman, robust_factor_black_litterman
 
 
 def _train_window(
@@ -40,6 +40,7 @@ def run_prediction_error(
     conf_base: float = 0.05,
     lookback: int = 252,
     skip: int = 21,
+    bl_method: str = "asset_momentum",
 ) -> pd.DataFrame:
     """
     Corre un test walk-forward mensual del error predictivo.
@@ -68,13 +69,24 @@ def run_prediction_error(
             continue
 
         train_r = train.clip(lower=-0.50, upper=0.50)
-        mu_bl = black_litterman(
-            train_r,
-            market_caps=market_caps,
-            conf_base=conf_base,
-            lookback=lookback,
-            skip=skip,
-        )
+        if bl_method == "robust_factor":
+            mu_bl = robust_factor_black_litterman(
+                train_r,
+                market_caps=market_caps,
+                conf_base=conf_base,
+                lookback=lookback,
+                skip=skip,
+            )
+        elif bl_method == "asset_momentum":
+            mu_bl = black_litterman(
+                train_r,
+                market_caps=market_caps,
+                conf_base=conf_base,
+                lookback=lookback,
+                skip=skip,
+            )
+        else:
+            raise ValueError(f"bl_method no soportado: {bl_method}")
 
         predicho = _retorno_predicho_periodo(mu_bl, len(retornos_mes))
         realizado = _retorno_realizado_periodo(retornos_mes).values
@@ -149,13 +161,16 @@ def run_profile_prediction_error(
     skip: int = 21,
     lam: float = 1.0,
     max_weight: float | None = None,
+    full_invest: bool = False,
+    use_bl: bool = True,
+    bl_method: str = "asset_momentum",
 ) -> pd.DataFrame:
     """
     Evalua el error predictivo a nivel portafolio para cada perfil.
 
     Para cada mes rolling:
-    1. Calcula mu_BL con informacion historica previa.
-    2. Optimiza pesos para cada perfil usando esa prediccion.
+    1. Calcula la senal esperada con Black-Litterman o media historica.
+    2. Optimiza pesos para cada perfil usando esa senal.
     3. Compara retorno mensual predicho del portafolio contra el realizado.
     """
     from backtesting.runner import _optimizar
@@ -179,15 +194,29 @@ def run_profile_prediction_error(
             continue
 
         train_r = train.clip(lower=-0.50, upper=0.50)
-        mu_bl = black_litterman(
-            train_r,
-            market_caps=market_caps,
-            conf_base=conf_base,
-            lookback=lookback,
-            skip=skip,
-        )
+        if use_bl:
+            if bl_method == "robust_factor":
+                mu_pred = robust_factor_black_litterman(
+                    train_r,
+                    market_caps=market_caps,
+                    conf_base=conf_base,
+                    lookback=lookback,
+                    skip=skip,
+                )
+            elif bl_method == "asset_momentum":
+                mu_pred = black_litterman(
+                    train_r,
+                    market_caps=market_caps,
+                    conf_base=conf_base,
+                    lookback=lookback,
+                    skip=skip,
+                )
+            else:
+                raise ValueError(f"bl_method no soportado: {bl_method}")
+        else:
+            mu_pred = train_r.mean().values
 
-        predicho_activos = _retorno_predicho_periodo(mu_bl, len(retornos_mes))
+        predicho_activos = _retorno_predicho_periodo(mu_pred, len(retornos_mes))
         realizado_activos = _retorno_realizado_periodo(retornos_mes).values
 
         for perfil, tolerancia in RISK_PROFILES.items():
@@ -195,9 +224,11 @@ def run_profile_prediction_error(
                 train_r,
                 tolerancia,
                 perfil,
-                mu_bl=mu_bl,
+                mu_bl=mu_pred,
                 lam=lam,
                 max_weight=max_weight,
+                full_invest=full_invest,
+                use_bl=use_bl,
             )
             predicho = float(np.dot(pesos, predicho_activos))
             realizado = float(np.dot(pesos, realizado_activos))

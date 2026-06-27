@@ -4,7 +4,7 @@ from scipy.stats import spearmanr
 from gurobipy import GRB
 
 from config import RISK_PROFILES, TRAIN_WINDOW_YEARS, MAX_WEIGHT, COMMISSION
-from models.black_littermanprelim import black_litterman
+from models.black_littermanprelim import black_litterman, robust_factor_black_litterman
 from models.markowitzprelim import optimizar_markowitz, calibrar_lambda
 from portfolio.engine import PortfolioState, paso_mensual
 
@@ -86,6 +86,7 @@ def run_backtest(
     vol_factor: float = _VOL_FACTOR,
     full_invest: bool = False,
     p1_lineal: bool = False,
+    use_bl: bool = True,
     seed: int = 42,
 ) -> pd.DataFrame:
     """
@@ -110,7 +111,7 @@ def run_backtest(
     mu_bl_init = mu_bl_cache.get(meses[0]) if mu_bl_cache else None
     pesos_0    = _optimizar(train_init, tolerancia, perfil,
                             mu_bl=mu_bl_init, lam=lam, max_weight=max_weight,
-                            full_invest=full_invest)
+                            full_invest=full_invest, use_bl=use_bl)
     state      = PortfolioState.crear(list(pr.columns), capital_inicial, pesos_0)
 
     registros = []
@@ -124,13 +125,18 @@ def run_backtest(
 
         train     = _train_window(pr, mes, train_years)
         mu_bl     = mu_bl_cache.get(mes) if mu_bl_cache else None
+        mu_signal = mu_bl
+        if not use_bl:
+            train_r = train.clip(lower=-_CLIP, upper=_CLIP)
+            mu_signal = train_r.mean().values
         pesos_opt = _optimizar(train, tolerancia, perfil,
                                mu_bl=mu_bl, lam=lam, max_weight=max_weight,
-                               vol_factor=vol_factor, full_invest=full_invest)
+                               vol_factor=vol_factor, full_invest=full_invest,
+                               use_bl=use_bl)
 
         metricas = paso_mensual(
             state, pr_mes, dv_mes, pesos_opt, tolerancia,
-            mu_bl=mu_bl,
+            mu_bl=mu_signal,
             commission_rate=commission,
             rng=rng,
             p1_lineal=p1_lineal,
@@ -151,6 +157,7 @@ def run_all_profiles(
     capital_inicial: float = 1_000_000,
     eval_start: str = "2019-01-01",
     eval_end: str = "2024-12-31",
+    train_years: int = TRAIN_WINDOW_YEARS,
     market_caps: pd.Series | None = None,
     lam: float | None = None,
     max_weight: float = MAX_WEIGHT,
@@ -160,7 +167,10 @@ def run_all_profiles(
     p1_lineal: bool = False,
     conf_base: float = 0.05,
     lookback: int = 252,
+    skip: int = 21,
+    bl_method: str = "asset_momentum",
     seed: int = 42,
+    use_bl: bool = True,
     verbose: bool = True,
     return_cache: bool = False,
 ) -> "dict[str, pd.DataFrame] | tuple[dict, dict]":
@@ -172,7 +182,7 @@ def run_all_profiles(
     """
     meses = pd.date_range(eval_start, eval_end, freq="MS")
 
-    train_init = _train_window(price_returns, meses[0], TRAIN_WINDOW_YEARS)
+    train_init = _train_window(price_returns, meses[0], train_years)
     train_init = train_init.dropna(axis=1, how="any")
     tickers    = list(train_init.columns)
 
@@ -201,20 +211,31 @@ def run_all_profiles(
     else:
         lambda_por_perfil = {perfil: lam for perfil in RISK_PROFILES}
 
-    if verbose:
-        print("  Calculando Black-Litterman por mes...", end="", flush=True)
-
     mu_bl_cache: dict = {}
-    for mes in meses:
-        train   = _train_window(pr, mes, TRAIN_WINDOW_YEARS)
-        train_r = train.clip(lower=-_CLIP, upper=_CLIP)
-        mu_bl_cache[mes] = black_litterman(
-            train_r, market_caps=market_caps,
-            conf_base=conf_base, lookback=lookback,
-        )
+    if use_bl:
+        if verbose:
+            print("  Calculando Black-Litterman por mes...", end="", flush=True)
 
-    if verbose:
-        print(f" {len(mu_bl_cache)} meses listos.")
+        for mes in meses:
+            train   = _train_window(pr, mes, train_years)
+            train_r = train.clip(lower=-_CLIP, upper=_CLIP)
+            if bl_method == "robust_factor":
+                mu_bl_cache[mes] = robust_factor_black_litterman(
+                    train_r, market_caps=market_caps,
+                    conf_base=conf_base, lookback=lookback, skip=skip,
+                )
+            elif bl_method == "asset_momentum":
+                mu_bl_cache[mes] = black_litterman(
+                    train_r, market_caps=market_caps,
+                    conf_base=conf_base, lookback=lookback, skip=skip,
+                )
+            else:
+                raise ValueError(f"bl_method no soportado: {bl_method}")
+
+        if verbose:
+            print(f" {len(mu_bl_cache)} meses listos.")
+    elif verbose:
+        print("  Sin Black-Litterman: usando media historica mensualizada en cada ventana.")
 
     resultados = {
         perfil: run_backtest(
@@ -223,6 +244,7 @@ def run_all_profiles(
             capital_inicial=capital_inicial,
             eval_start=eval_start,
             eval_end=eval_end,
+            train_years=train_years,
             mu_bl_cache=mu_bl_cache,
             lam=lambda_por_perfil[perfil],
             max_weight=max_weight,
@@ -230,6 +252,7 @@ def run_all_profiles(
             vol_factor=vol_factor,
             full_invest=full_invest,
             p1_lineal=p1_lineal,
+            use_bl=use_bl,
             seed=seed,
         )
         for perfil in RISK_PROFILES

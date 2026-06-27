@@ -1,0 +1,6 @@
+perfil,observaciones,mae,rmse,bias,hit_rate_signo,peso_acciones_promedio,n_activos_promedio,corr_pred_real,modelo,train_years,max_weight
+arriesgado,72,0.039665,0.050495,0.013642,0.6528,1.0,273.75,0.0296,sin_bl,5,0.025
+conservador,72,0.042341,0.05471,-0.001759,0.6528,1.0,295.0,-0.1655,sin_bl,5,0.025
+muy_arriesgado,72,0.050914,0.064178,0.015789,0.6528,1.0,248.19,-0.0377,sin_bl,5,0.025
+muy_conservador,72,0.0,0.0,0.0,1.0,0.0,0.0,,sin_bl,5,0.025
+neutro,72,0.039641,0.053291,0.000446,0.6667,1.0,286.1,-0.3088,sin_bl,5,0.025
