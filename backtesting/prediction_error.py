@@ -31,6 +31,77 @@ def _retorno_predicho_periodo(mu_diario: np.ndarray, n_dias: int) -> np.ndarray:
     return (1 + mu_diario) ** n_dias - 1
 
 
+def _calcular_mu_bl(
+    train_r: pd.DataFrame,
+    market_caps: pd.Series | None,
+    conf_base: float,
+    lookback: int,
+    skip: int,
+    bl_method: str,
+) -> np.ndarray:
+    if bl_method == "asset_momentum":
+        return black_litterman(
+            train_r,
+            market_caps=market_caps,
+            conf_base=conf_base,
+            lookback=lookback,
+            skip=skip,
+        )
+    if bl_method == "robust_factor":
+        return robust_factor_black_litterman(
+            train_r,
+            market_caps=market_caps,
+            conf_base=conf_base,
+            lookback=lookback,
+            skip=skip,
+        )
+    if bl_method == "robust_factor_balanced":
+        return robust_factor_black_litterman(
+            train_r,
+            market_caps=market_caps,
+            conf_base=conf_base,
+            lookback=lookback,
+            skip=skip,
+            inv_vol_weight=0.25,
+            view_cap_daily=0.0025,
+            view_shrink=0.75,
+            hist_blend=0.35,
+        )
+    if bl_method == "robust_factor_growth":
+        return robust_factor_black_litterman(
+            train_r,
+            market_caps=market_caps,
+            conf_base=conf_base,
+            lookback=lookback,
+            skip=skip,
+            inv_vol_weight=0.20,
+            view_cap_daily=0.0030,
+            view_shrink=1.00,
+            hist_blend=0.55,
+        )
+    if bl_method == "robust_factor_hybrid":
+        mu_factor = robust_factor_black_litterman(
+            train_r,
+            market_caps=market_caps,
+            conf_base=conf_base,
+            lookback=lookback,
+            skip=skip,
+            inv_vol_weight=0.20,
+            view_cap_daily=0.0030,
+            view_shrink=1.00,
+            hist_blend=0.55,
+        )
+        mu_asset = black_litterman(
+            train_r,
+            market_caps=market_caps,
+            conf_base=max(conf_base, 2.0),
+            lookback=lookback,
+            skip=skip,
+        )
+        return 0.65 * mu_factor + 0.35 * mu_asset
+    raise ValueError(f"bl_method no soportado: {bl_method}")
+
+
 def run_prediction_error(
     price_returns: pd.DataFrame,
     market_caps: pd.Series | None = None,
@@ -69,24 +140,14 @@ def run_prediction_error(
             continue
 
         train_r = train.clip(lower=-0.50, upper=0.50)
-        if bl_method == "robust_factor":
-            mu_bl = robust_factor_black_litterman(
-                train_r,
-                market_caps=market_caps,
-                conf_base=conf_base,
-                lookback=lookback,
-                skip=skip,
-            )
-        elif bl_method == "asset_momentum":
-            mu_bl = black_litterman(
-                train_r,
-                market_caps=market_caps,
-                conf_base=conf_base,
-                lookback=lookback,
-                skip=skip,
-            )
-        else:
-            raise ValueError(f"bl_method no soportado: {bl_method}")
+        mu_bl = _calcular_mu_bl(
+            train_r=train_r,
+            market_caps=market_caps,
+            conf_base=conf_base,
+            lookback=lookback,
+            skip=skip,
+            bl_method=bl_method,
+        )
 
         predicho = _retorno_predicho_periodo(mu_bl, len(retornos_mes))
         realizado = _retorno_realizado_periodo(retornos_mes).values
@@ -195,24 +256,14 @@ def run_profile_prediction_error(
 
         train_r = train.clip(lower=-0.50, upper=0.50)
         if use_bl:
-            if bl_method == "robust_factor":
-                mu_pred = robust_factor_black_litterman(
-                    train_r,
-                    market_caps=market_caps,
-                    conf_base=conf_base,
-                    lookback=lookback,
-                    skip=skip,
-                )
-            elif bl_method == "asset_momentum":
-                mu_pred = black_litterman(
-                    train_r,
-                    market_caps=market_caps,
-                    conf_base=conf_base,
-                    lookback=lookback,
-                    skip=skip,
-                )
-            else:
-                raise ValueError(f"bl_method no soportado: {bl_method}")
+            mu_pred = _calcular_mu_bl(
+                train_r=train_r,
+                market_caps=market_caps,
+                conf_base=conf_base,
+                lookback=lookback,
+                skip=skip,
+                bl_method=bl_method,
+            )
         else:
             mu_pred = train_r.mean().values
 

@@ -26,6 +26,59 @@ def _train_window(
 _VOL_FACTOR = 0.5  # fracción de la tolerancia usada como límite de volatilidad QCQP
 
 
+def _calcular_mu_bl(
+    train_r: pd.DataFrame,
+    market_caps: pd.Series | None,
+    conf_base: float,
+    lookback: int,
+    skip: int,
+    bl_method: str,
+) -> np.ndarray:
+    if bl_method == "asset_momentum":
+        return black_litterman(
+            train_r, market_caps=market_caps,
+            conf_base=conf_base, lookback=lookback, skip=skip,
+        )
+    if bl_method == "robust_factor":
+        return robust_factor_black_litterman(
+            train_r, market_caps=market_caps,
+            conf_base=conf_base, lookback=lookback, skip=skip,
+        )
+    if bl_method == "robust_factor_balanced":
+        return robust_factor_black_litterman(
+            train_r, market_caps=market_caps,
+            conf_base=conf_base, lookback=lookback, skip=skip,
+            inv_vol_weight=0.25,
+            view_cap_daily=0.0025,
+            view_shrink=0.75,
+            hist_blend=0.35,
+        )
+    if bl_method == "robust_factor_growth":
+        return robust_factor_black_litterman(
+            train_r, market_caps=market_caps,
+            conf_base=conf_base, lookback=lookback, skip=skip,
+            inv_vol_weight=0.20,
+            view_cap_daily=0.0030,
+            view_shrink=1.00,
+            hist_blend=0.55,
+        )
+    if bl_method == "robust_factor_hybrid":
+        mu_factor = robust_factor_black_litterman(
+            train_r, market_caps=market_caps,
+            conf_base=conf_base, lookback=lookback, skip=skip,
+            inv_vol_weight=0.20,
+            view_cap_daily=0.0030,
+            view_shrink=1.00,
+            hist_blend=0.55,
+        )
+        mu_asset = black_litterman(
+            train_r, market_caps=market_caps,
+            conf_base=max(conf_base, 2.0), lookback=lookback, skip=skip,
+        )
+        return 0.65 * mu_factor + 0.35 * mu_asset
+    raise ValueError(f"bl_method no soportado: {bl_method}")
+
+
 def _optimizar(
     train: pd.DataFrame,
     tolerancia: float,
@@ -219,18 +272,14 @@ def run_all_profiles(
         for mes in meses:
             train   = _train_window(pr, mes, train_years)
             train_r = train.clip(lower=-_CLIP, upper=_CLIP)
-            if bl_method == "robust_factor":
-                mu_bl_cache[mes] = robust_factor_black_litterman(
-                    train_r, market_caps=market_caps,
-                    conf_base=conf_base, lookback=lookback, skip=skip,
-                )
-            elif bl_method == "asset_momentum":
-                mu_bl_cache[mes] = black_litterman(
-                    train_r, market_caps=market_caps,
-                    conf_base=conf_base, lookback=lookback, skip=skip,
-                )
-            else:
-                raise ValueError(f"bl_method no soportado: {bl_method}")
+            mu_bl_cache[mes] = _calcular_mu_bl(
+                train_r=train_r,
+                market_caps=market_caps,
+                conf_base=conf_base,
+                lookback=lookback,
+                skip=skip,
+                bl_method=bl_method,
+            )
 
         if verbose:
             print(f" {len(mu_bl_cache)} meses listos.")

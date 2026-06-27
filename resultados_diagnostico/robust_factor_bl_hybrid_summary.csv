@@ -1,0 +1,6 @@
+config_id,bl_method,perfil,retorno_promedio,drawdown_promedio,tasa_aceptacion,tasa_abandono,prob_aceptacion_promedio,prob_abandono_promedio,peor_retorno
+robust_factor_hybrid|conf=1|lb=126|skip=21,robust_factor_hybrid,arriesgado,0.1988714285714286,0.10081428571428572,0.4642857142857143,0.0,0.4832340429547628,0.0,-0.1026
+robust_factor_hybrid|conf=1|lb=126|skip=21,robust_factor_hybrid,conservador,-0.00731428571428571,0.06317142857142857,0.8857142857142858,0.7142857142857143,0.8948422627248103,0.24645331203435777,-0.3353
+robust_factor_hybrid|conf=1|lb=126|skip=21,robust_factor_hybrid,muy_arriesgado,0.2371,0.12219999999999999,0.4404857142857143,0.0,0.4721345250463444,0.0,-0.1343
+robust_factor_hybrid|conf=1|lb=126|skip=21,robust_factor_hybrid,muy_conservador,-0.0091,0.0,0.3333,0.0,0.5,0.0,-0.0091
+robust_factor_hybrid|conf=1|lb=126|skip=21,robust_factor_hybrid,neutro,0.039585714285714294,0.09714285714285713,0.6984142857142857,0.2857142857142857,0.6801894445006594,0.0725270039995357,-0.6484

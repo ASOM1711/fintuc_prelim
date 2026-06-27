@@ -1,0 +1,4 @@
+modelo,bl_method,conf_base,observaciones,mae,rmse,bias,hit_rate_signo,corr_pred_real
+BL 126/21 conf2,asset_momentum,2.0,21240,0.076497,0.139304,-0.008047,0.5226,0.004
+Factor growth,robust_factor_growth,1.0,21240,0.074983,0.137869,-0.002157,0.5571,-0.0088
+Factor hybrid,robust_factor_hybrid,1.0,21240,0.075238,0.138071,-0.004259,0.5452,-0.0033
