@@ -62,7 +62,11 @@ def _calcular_mu_bl(
             view_shrink=1.00,
             hist_blend=0.55,
         )
-    if bl_method == "robust_factor_hybrid":
+    if bl_method in {
+        "robust_factor_hybrid",
+        "robust_factor_hybrid_50",
+        "robust_factor_hybrid_asset",
+    }:
         mu_factor = robust_factor_black_litterman(
             train_r, market_caps=market_caps,
             conf_base=conf_base, lookback=lookback, skip=skip,
@@ -75,7 +79,12 @@ def _calcular_mu_bl(
             train_r, market_caps=market_caps,
             conf_base=max(conf_base, 2.0), lookback=lookback, skip=skip,
         )
-        return 0.65 * mu_factor + 0.35 * mu_asset
+        factor_weight = {
+            "robust_factor_hybrid": 0.65,
+            "robust_factor_hybrid_50": 0.50,
+            "robust_factor_hybrid_asset": 0.35,
+        }[bl_method]
+        return factor_weight * mu_factor + (1.0 - factor_weight) * mu_asset
     raise ValueError(f"bl_method no soportado: {bl_method}")
 
 

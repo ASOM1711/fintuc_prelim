@@ -1,0 +1,5 @@
+modelo,bl_method,conf_base,observaciones,mae,rmse,bias,hit_rate_signo,corr_pred_real
+hybrid 65F/35A,robust_factor_hybrid,1.0,21240,0.075238,0.138071,-0.004259,0.5452,-0.0033
+hybrid 50F/50A,robust_factor_hybrid_50,1.0,21240,0.07544,0.13826,-0.005146,0.5414,-0.0011
+hybrid 35F/65A,robust_factor_hybrid_asset,1.0,21240,0.075697,0.138507,-0.006025,0.5357,0.0007
+BL 126/21,asset_momentum,2.0,21240,0.076497,0.139304,-0.008047,0.5226,0.004
