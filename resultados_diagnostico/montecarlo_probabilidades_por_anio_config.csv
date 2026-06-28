@@ -1,0 +1,2 @@
+start_year,end_year,n_clientes,train_years,lambda,bl_method,max_weight_muy_conservador,max_weight_conservador,max_weight_neutro,max_weight_arriesgado,max_weight_muy_arriesgado
+2019,2025,5000,5,0.0,robust_factor_hybrid,0.025,0.025,0.01,0.025,0.05
