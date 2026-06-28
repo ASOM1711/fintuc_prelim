@@ -16,7 +16,7 @@ from reportlab.platypus import (
 )
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 INPUT = ROOT / "resultados_diagnostico" / "max_weight_decision_resumen.csv"
 OUTPUT_DIR = ROOT / "output" / "pdf"
 OUTPUT = OUTPUT_DIR / "analisis_max_weight_resultados.pdf"

@@ -18,7 +18,7 @@ from reportlab.platypus import (
 )
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 RESULTS = ROOT / "resultados_diagnostico"
 OUTPUT_DIR = ROOT / "output" / "pdf"
 OUTPUT = OUTPUT_DIR / "actualizacion_hybrid_bl_vs_sin_bl.pdf"

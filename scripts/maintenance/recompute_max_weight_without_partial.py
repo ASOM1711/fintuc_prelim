@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = ROOT / "resultados_diagnostico"
 METRICAS = OUT_DIR / "max_weight_decision_metricas_anuales.csv"
 ERROR = OUT_DIR / "max_weight_decision_error_predictivo.csv"
