@@ -8,7 +8,14 @@ INFO_FILE = Path(r"C:\Users\aguor\OneDrive - Universidad Católica de Chile\G18 
 TRAIN_WINDOW_YEARS = 5
 
 # Modelo
-MAX_WEIGHT = 0.025      # máximo 2,5% por activo
+MAX_WEIGHT = 0.025      # fallback: maximo 2,5% por activo
+PROFILE_MAX_WEIGHTS = {
+    "muy_conservador": 0.025,
+    "conservador":     0.025,
+    "neutro":          0.010,
+    "arriesgado":      0.025,
+    "muy_arriesgado":  0.050,
+}
 BL_METHOD = "robust_factor_hybrid"  # 65% factor BL robusto + 35% BL momentum por acción
 BL_CONF_BASE = 1.0
 BL_LOOKBACK = 126

@@ -7,6 +7,7 @@ from config import (
     RISK_PROFILES,
     TRAIN_WINDOW_YEARS,
     MAX_WEIGHT,
+    PROFILE_MAX_WEIGHTS,
     COMMISSION,
     BL_METHOD,
     BL_CONF_BASE,
@@ -33,6 +34,14 @@ def _train_window(
 
 
 _VOL_FACTOR = 0.5  # fracción de la tolerancia usada como límite de volatilidad QCQP
+
+
+def _max_weight_for_profile(max_weight, perfil: str) -> float:
+    if max_weight is None:
+        return PROFILE_MAX_WEIGHTS.get(perfil, MAX_WEIGHT)
+    if isinstance(max_weight, dict):
+        return max_weight.get(perfil, MAX_WEIGHT)
+    return float(max_weight)
 
 
 def _calcular_mu_bl(
@@ -103,7 +112,7 @@ def _optimizar(
     perfil: str,
     mu_bl: np.ndarray | None = None,
     lam: float = _LAM,
-    max_weight: float = MAX_WEIGHT,
+    max_weight: float | dict | None = None,
     vol_factor: float = _VOL_FACTOR,
     use_bl: bool = True,
     full_invest: bool = False,
@@ -115,6 +124,7 @@ def _optimizar(
     use_bl     : si False, usa media histórica en lugar de Black-Litterman.
     vol_factor : fracción de la tolerancia usada en el constraint QCQP.
     """
+    max_weight = _max_weight_for_profile(max_weight, perfil)
     n = len(train.columns)
     if tolerancia == 0.0:
         return np.zeros(n)
@@ -152,7 +162,7 @@ def run_backtest(
     train_years: int = TRAIN_WINDOW_YEARS,
     mu_bl_cache: dict | None = None,
     lam: float = _LAM,
-    max_weight: float = MAX_WEIGHT,
+    max_weight: float | dict | None = None,
     commission: float = COMMISSION,
     vol_factor: float = _VOL_FACTOR,
     full_invest: bool = False,
@@ -172,6 +182,7 @@ def run_backtest(
     full_invest : si True, Σw=1 (cliente invierte el 100%; caja chica solo dividendos)
     """
     tolerancia = RISK_PROFILES[perfil]
+    profile_max_weight = _max_weight_for_profile(max_weight, perfil)
     rng        = np.random.default_rng(seed)
     meses      = pd.date_range(eval_start, eval_end, freq="MS")
 
@@ -181,7 +192,7 @@ def run_backtest(
     train_init = _train_window(pr, meses[0], train_years)
     mu_bl_init = mu_bl_cache.get(meses[0]) if mu_bl_cache else None
     pesos_0    = _optimizar(train_init, tolerancia, perfil,
-                            mu_bl=mu_bl_init, lam=lam, max_weight=max_weight,
+                            mu_bl=mu_bl_init, lam=lam, max_weight=profile_max_weight,
                             full_invest=full_invest, use_bl=use_bl)
     state      = PortfolioState.crear(list(pr.columns), capital_inicial, pesos_0)
 
@@ -201,7 +212,7 @@ def run_backtest(
             train_r = train.clip(lower=-_CLIP, upper=_CLIP)
             mu_signal = train_r.mean().values
         pesos_opt = _optimizar(train, tolerancia, perfil,
-                               mu_bl=mu_bl, lam=lam, max_weight=max_weight,
+                               mu_bl=mu_bl, lam=lam, max_weight=profile_max_weight,
                                vol_factor=vol_factor, full_invest=full_invest,
                                use_bl=use_bl)
 
@@ -214,6 +225,7 @@ def run_backtest(
         )
         metricas["fecha"]  = mes
         metricas["perfil"] = perfil
+        metricas["max_weight"] = profile_max_weight
         registros.append(metricas)
 
         if metricas["abandona"]:
@@ -231,7 +243,7 @@ def run_all_profiles(
     train_years: int = TRAIN_WINDOW_YEARS,
     market_caps: pd.Series | None = None,
     lam: float | None = None,
-    max_weight: float = MAX_WEIGHT,
+    max_weight: float | dict | None = None,
     commission: float = COMMISSION,
     vol_factor: float = _VOL_FACTOR,
     full_invest: bool = False,
@@ -268,11 +280,12 @@ def run_all_profiles(
         lambda_por_perfil: dict = {}
         _LAM_MAX = 5000.0
         for perfil, tolerancia in RISK_PROFILES.items():
+            profile_max_weight = _max_weight_for_profile(max_weight, perfil)
             if tolerancia == 0.0:
                 lambda_por_perfil[perfil] = _LAM_MAX
             else:
                 target_vol = tolerancia * vol_factor
-                lam_cal = calibrar_lambda(train_init_r, target_vol, max_weight=max_weight)
+                lam_cal = calibrar_lambda(train_init_r, target_vol, max_weight=profile_max_weight)
                 # si toca el techo la vol objetivo es menor que la min alcanzable:
                 # usar lambda maximo (minima varianza posible)
                 lambda_por_perfil[perfil] = lam_cal
@@ -314,7 +327,7 @@ def run_all_profiles(
             train_years=train_years,
             mu_bl_cache=mu_bl_cache,
             lam=lambda_por_perfil[perfil],
-            max_weight=max_weight,
+            max_weight=_max_weight_for_profile(max_weight, perfil),
             commission=commission,
             vol_factor=vol_factor,
             full_invest=full_invest,
@@ -386,7 +399,7 @@ def run_benchmark_markowitz(
     eval_start: str = "2019-01-01",
     eval_end: str = "2024-12-31",
     lam: float = _LAM,
-    max_weight: float = MAX_WEIGHT,
+    max_weight: float | dict | None = None,
     commission: float = COMMISSION,
     vol_factor: float = _VOL_FACTOR,
     full_invest: bool = False,
@@ -413,12 +426,13 @@ def run_benchmark_markowitz(
     resultados = {}
     for perfil in RISK_PROFILES:
         tolerancia = RISK_PROFILES[perfil]
+        profile_max_weight = _max_weight_for_profile(max_weight, perfil)
         rng        = np.random.default_rng(seed)
         state      = PortfolioState.crear(
             tickers, capital_inicial,
             _optimizar(_train_window(pr, meses[0], TRAIN_WINDOW_YEARS),
                        tolerancia, perfil, use_bl=False,
-                       lam=lam, max_weight=max_weight, vol_factor=vol_factor,
+                       lam=lam, max_weight=profile_max_weight, vol_factor=vol_factor,
                        full_invest=full_invest)
         )
 
@@ -434,7 +448,7 @@ def run_benchmark_markowitz(
             train_r   = train.clip(lower=-_CLIP, upper=_CLIP)
             mu_sample = train_r.mean().values   # media histórica para P2
             pesos_opt = _optimizar(train, tolerancia, perfil, use_bl=False,
-                                   lam=lam, max_weight=max_weight, vol_factor=vol_factor,
+                                   lam=lam, max_weight=profile_max_weight, vol_factor=vol_factor,
                                    full_invest=full_invest)
 
             metricas = paso_mensual(
@@ -445,6 +459,7 @@ def run_benchmark_markowitz(
             )
             metricas["fecha"]  = mes
             metricas["perfil"] = perfil
+            metricas["max_weight"] = profile_max_weight
             registros.append(metricas)
 
             if metricas["abandona"]:
@@ -467,7 +482,7 @@ def run_monte_carlo(
     eval_start: str = "2019-01-01",
     eval_end: str = "2024-12-31",
     lam: float = _LAM,
-    max_weight: float = MAX_WEIGHT,
+    max_weight: float | dict | None = None,
     commission: float = COMMISSION,
     vol_factor: float = _VOL_FACTOR,
     full_invest: bool = False,
@@ -496,7 +511,8 @@ def run_monte_carlo(
         train = _train_window(pr, mes, TRAIN_WINDOW_YEARS)
         pesos_cache[mes] = {
             perfil: _optimizar(train, RISK_PROFILES[perfil], perfil,
-                               mu_bl=mu_bl, lam=lam, max_weight=max_weight,
+                               mu_bl=mu_bl, lam=lam,
+                               max_weight=_max_weight_for_profile(max_weight, perfil),
                                vol_factor=vol_factor, full_invest=full_invest)
                 for perfil in perfiles
         }
@@ -548,6 +564,7 @@ def run_monte_carlo(
 
             resultados[perfil].append({
                 "cliente":              i,
+                "max_weight":           _max_weight_for_profile(max_weight, perfil),
                 "abandona":             abandona,
                 "meses_activos":        meses_activos,
                 "valor_final":          round(state.valor, 2),

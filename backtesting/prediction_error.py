@@ -230,7 +230,7 @@ def run_profile_prediction_error(
     lookback: int = BL_LOOKBACK,
     skip: int = BL_SKIP,
     lam: float = 1.0,
-    max_weight: float | None = None,
+    max_weight: float | dict | None = None,
     full_invest: bool = False,
     use_bl: bool = True,
     bl_method: str = BL_METHOD,
@@ -243,11 +243,10 @@ def run_profile_prediction_error(
     2. Optimiza pesos para cada perfil usando esa senal.
     3. Compara retorno mensual predicho del portafolio contra el realizado.
     """
-    from backtesting.runner import _optimizar
-    from config import MAX_WEIGHT, RISK_PROFILES
+    from backtesting.runner import _max_weight_for_profile, _optimizar
+    from config import RISK_PROFILES
 
     meses = pd.date_range(eval_start, eval_end, freq="MS")
-    max_weight = MAX_WEIGHT if max_weight is None else max_weight
 
     train_init = _train_window(price_returns, meses[0], train_years)
     train_init = train_init.dropna(axis=1, how="any")
@@ -280,13 +279,14 @@ def run_profile_prediction_error(
         realizado_activos = _retorno_realizado_periodo(retornos_mes).values
 
         for perfil, tolerancia in RISK_PROFILES.items():
+            profile_max_weight = _max_weight_for_profile(max_weight, perfil)
             pesos = _optimizar(
                 train_r,
                 tolerancia,
                 perfil,
                 mu_bl=mu_pred,
                 lam=lam,
-                max_weight=max_weight,
+                max_weight=profile_max_weight,
                 full_invest=full_invest,
                 use_bl=use_bl,
             )
@@ -297,6 +297,7 @@ def run_profile_prediction_error(
             registros.append({
                 "fecha": mes,
                 "perfil": perfil,
+                "max_weight": profile_max_weight,
                 "retorno_predicho": predicho,
                 "retorno_realizado": realizado,
                 "error": error,
@@ -316,6 +317,7 @@ def resumen_prediction_error_por_perfil(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
 
     out = df.groupby("perfil").agg(
+        max_weight=("max_weight", "first"),
         observaciones=("fecha", "count"),
         mae=("abs_error", "mean"),
         rmse=("sq_error", lambda x: float(np.sqrt(x.mean()))),
